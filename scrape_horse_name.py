@@ -1,6 +1,7 @@
 import re
 import sys
 import requests
+import json
 
 def get_horse_name(horse_id):
     """
@@ -19,32 +20,49 @@ def get_horse_name(horse_id):
         response.raise_for_status()
         html_content = response.text
 
-        # The name and ID are together inside the span: <span class="title_text">NAME (ID)</span>
         match = re.search(r'<span class="title_text">([^<]+)</span>', html_content)
         if match:
             full_text = match.group(1).strip()
-            # Remove the ID part from the end of the string.
-            # The ID is in the format (H108)
             horse_name = re.sub(r'\s*\([^\)]+\)$', '', full_text).strip()
             return horse_name
 
     except requests.exceptions.RequestException as e:
-        print(f"An error occurred during the web request: {e}", file=sys.stderr)
+        # This will be handled in the main function
+        return None
     except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        # This will be handled in the main function
+        return None
 
     return None
 
-if __name__ == "__main__":
+def main():
+    """
+    Main function to handle command-line arguments, call the scraper,
+    and print the output in JSON format.
+    """
     if len(sys.argv) != 2:
-        print("Usage: python scrape_horse_name.py <horse_id>", file=sys.stderr)
+        error_data = {
+            "error": "Usage: python scrape_horse_name.py <horse_id>"
+        }
+        print(json.dumps(error_data, ensure_ascii=False, indent=2))
         sys.exit(1)
 
     horse_id_input = sys.argv[1]
     horse_name = get_horse_name(horse_id_input)
 
     if horse_name:
-        print(horse_name)
+        output_data = {
+            "horse_id": horse_id_input,
+            "chinese_name": horse_name
+        }
+        print(json.dumps(output_data, ensure_ascii=False, indent=2))
     else:
-        print(f"ERROR: Could not find the name for horse ID: {horse_id_input}", file=sys.stderr)
+        error_data = {
+            "horse_id": horse_id_input,
+            "error": f"Could not find the name for horse ID: {horse_id_input}"
+        }
+        print(json.dumps(error_data, ensure_ascii=False, indent=2))
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
